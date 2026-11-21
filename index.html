@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>KidZania İstanbul | National Store</title>
+  <link rel="icon" type="image/png" href="icon.ico">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', 'Poppins', sans-serif; background: #f9fafc; color: #1e2b3c; display: flex; flex-direction: column; min-height: 100vh; }
+    :root { --kidz-red: #E30613; --kidz-blue: #00A0E3; --kidz-yellow: #FFD200; --kidz-dark: #1e2b3c; --shadow-sm: 0 8px 20px rgba(0,0,0,0.06); --shadow-hover: 0 15px 30px rgba(0,0,0,0.12); }
+    header { background: white; padding: 0.5rem 2rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.04); flex-wrap: wrap; gap: 1rem; }
+    .logo-area { display: flex; align-items: center; gap: 1rem; }
+    .logo-area img { height: 60px; object-fit: contain; }
+    .store-title { font-size: 1.7rem; font-weight: 700; background: linear-gradient(135deg, var(--kidz-red), var(--kidz-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+    .nav-links button { background: none; border: none; font-weight: 600; font-size: 1rem; color: var(--kidz-dark); cursor: pointer; padding: 0.5rem 1rem; border-radius: 30px; transition: all 0.2s; }
+    .nav-links button:hover { background: var(--kidz-yellow); color: #000; }
+    .admin-btn { background: var(--kidz-red) !important; color: white !important; font-weight: bold; box-shadow: 0 4px 10px rgba(227,6,19,0.3); }
+    .container { flex: 1; padding: 2rem; max-width: 1300px; margin: 0 auto; width: 100%; }
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: white; padding: 1rem; border-radius: 24px; box-shadow: var(--shadow-sm); }
+    .filter-bar input, .filter-bar select, .filter-bar button { padding: 0.7rem 1rem; border-radius: 20px; border: 1px solid #ddd; font-size: 0.9rem; font-family: inherit; }
+    .filter-bar input { flex: 2; min-width: 200px; }
+    .filter-bar select { flex: 1; min-width: 150px; }
+    .btn { padding: 0.7rem 1.8rem; border-radius: 30px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; background: var(--kidz-blue); color: white; display: inline-flex; align-items: center; gap: 0.4rem; justify-content: center; }
+    .btn-red { background: var(--kidz-red); }
+    .btn-yellow { background: var(--kidz-yellow); color: #000; }
+    .btn-outline { background: transparent; border: 2px solid var(--kidz-blue); color: var(--kidz-blue); }
+    .btn:hover { filter: brightness(0.95); transform: scale(1.02); }
+    .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.8rem; margin-top: 1rem; }
+    .product-card { background: white; border-radius: 24px; padding: 1.2rem 1rem; box-shadow: var(--shadow-sm); transition: transform 0.25s, box-shadow 0.25s; display: flex; flex-direction: column; align-items: center; text-align: center; border: 1px solid rgba(0,160,227,0.15); cursor: pointer; }
+    .product-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-hover); }
+    .product-thumb { width: 120px; height: 120px; object-fit: contain; border-radius: 16px; background: #f4f7fc; margin-bottom: 0.8rem; display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+    .product-thumb img { max-width: 100%; max-height: 100%; border-radius: 12px; }
+    .product-name { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.3rem; }
+    .product-price { font-size: 1.2rem; font-weight: 700; color: var(--kidz-blue); }
+    .category-tag { background: #e8f0fe; font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 12px; margin-top: 0.3rem; color: #1e2b3c; }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .modal-content { background: white; padding: 2rem; border-radius: 32px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.25); position: relative; max-height: 90vh; overflow-y: auto; }
+    .detail-image { width: 220px; height: 220px; object-fit: contain; margin: 0 auto 1.5rem; border-radius: 20px; background: #f0f4fa; display: flex; align-items: center; justify-content: center; font-size: 5rem; }
+    .detail-image img { max-width: 100%; max-height: 100%; border-radius: 16px; }
+    .detail-info { text-align: left; background: #f9fafc; padding: 1rem; border-radius: 16px; margin-bottom: 1.5rem; }
+    .detail-row { display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid #eee; font-size: 0.95rem; }
+    .detail-row:last-child { border-bottom: none; }
+    .stock-badge { background: #e8f0fe; padding: 0.3rem 1rem; border-radius: 20px; font-weight: 600; }
+    .out-of-stock { background: #E30613; color: white; font-size: 1.4rem; font-weight: 900; padding: 0.3rem 1.5rem; border-radius: 30px; letter-spacing: 1px; }
+    .low-stock-badge { background: #ffe0e0; color: var(--kidz-red); }
+    .login-box, .admin-dashboard { background: white; max-width: 500px; margin: 2rem auto; padding: 2rem; border-radius: 32px; box-shadow: var(--shadow-sm); }
+    .admin-dashboard { max-width: 1100px; }
+    .input-group { margin-bottom: 1.2rem; }
+    .input-group label { font-weight: 600; display: block; margin-bottom: 0.3rem; }
+    .input-group input, .input-group textarea, .input-group select { width: 100%; padding: 0.8rem 1rem; border-radius: 16px; border: 1px solid #ddd; font-size: 1rem; font-family: inherit; }
+    table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+    th { background: var(--kidz-blue); color: white; padding: 0.8rem; }
+    td, th { border: 1px solid #e0e0e0; padding: 0.6rem; text-align: center; }
+    .visibility-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 0.2rem 0.5rem; border-radius: 50%; transition: 0.2s; }
+    .visibility-btn:hover { background: #e8e8e8; }
+    .footer { text-align: center; padding: 1rem; background: var(--kidz-dark); color: white; font-size: 0.9rem; }
+    #loadingIndicator { text-align: center; padding: 2rem; font-size: 1.2rem; color: var(--kidz-blue); }
+    
+    @media (max-width: 600px) { 
+      header { flex-direction: column; padding: 1rem; } 
+      .nav-links { flex-wrap: wrap; justify-content: center; } 
+      .container { padding: 1rem; }
+      .modal-content { padding: 1.5rem; }
+      .detail-image { width: 180px; height: 180px; font-size: 4rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-area">
+      <img src="kidzanialogo.jpg" alt="KidZania Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+      <div style="display: none; background:#E30613; color:white; border-radius:20px; padding:0.5rem 1.2rem; font-weight:bold;">KidZania Store</div>
+      <span class="store-title">National Store</span>
+    </div>
+    <div class="nav-links">
+      <button id="goHomeBtn">🏠 Ana Sayfa</button>
+      <button id="adminPanelBtn" class="admin-btn">🔐 Admin Girişi</button>
+      <button id="logoutBtn" style="display:none;" class="btn-red">Çıkış Yap</button>
+    </div>
+  </header>
+
+  <div class="container" id="mainContainer"></div>
+  <footer class="footer">© 2025 KidZania National Store - Tüm Hakları Saklıdır</footer>
+
+  <script>
+    // ========== FIREBASE YAPILANDIRMA ==========
+    const firebaseConfig = {
+      apiKey: "AIzaSyC7vj4zKvR4GS77XnWQEzg9Q0u76GhQKnI",
+      authDomain: "kidzania-national-store.firebaseapp.com",
+      projectId: "kidzania-national-store",
+      storageBucket: "kidzania-national-store.firebasestorage.app",
+      messagingSenderId: "397254374540",
+      appId: "1:397254374540:web:c0b7d6e3c1ef2ff649b7a9"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const COLLECTION_NAME = 'products';
+    const CONFIG_COLLECTION = '_config';
+    const CONFIG_DOC = 'admin';
+
+    // ========== YARDIMCI FONKSİYONLAR ==========
+    function escapeHtml(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    const CATEGORIES = ['Oyuncak', 'Tekstil', 'Giyim', 'Aksesuar', 'Kutu Oyunları', 'Hediyelik', 'Kitap', 'Kırtasiye', 'Hobi/Eğlence', 'Diğer'];
+    let isAdminLoggedIn = sessionStorage.getItem('kidzania_admin_logged') === 'true';
+    let products = [];
+
+    // ========== FIRESTORE İŞLEMLERİ ==========
+    async function loadProductsFromFirestore() {
+      try {
+        const snapshot = await db.collection(COLLECTION_NAME).get();
+        if (snapshot.empty) {
+          await seedDefaultProducts();
+          return await loadProductsFromFirestore();
+        }
+        const list = [];
+        snapshot.forEach(doc => {
+          list.push({ id: doc.id, ...doc.data() });
+        });
+        products = list;
+        return list;
+      } catch (error) {
+        console.error('Firestore okuma hatası:', error);
+        alert('Firestore bağlantı hatası! Lütfen config bilgilerinizi kontrol edin.');
+        return [];
+      }
+    }
+
+    async function seedDefaultProducts() {
+      const defaults = [
+        { name: 'KidZania Tişört', stock: 25, price: '₺120', icon: '👕', description: 'Yumuşak pamuklu tişört.', origin: 'Türkiye', imageUrl: '', barcode: '869123456001', category: 'Giyim', visible: true, size: 'M', validFrom: '2025-01-01' },
+        { name: 'Şapka (Kırmızı)', stock: 10, price: '₺75', icon: '🧢', description: 'Ayarlanabilir kırmızı şapka.', origin: 'Çin', imageUrl: '', barcode: '869123456002', category: 'Aksesuar', visible: true, size: 'Tek beden', validFrom: '2025-01-01' },
+        { name: 'Oyuncak Uçak', stock: 8, price: '₺210', icon: '✈️', description: 'Metal uçak modeli.', origin: 'Almanya', imageUrl: '', barcode: '869123456003', category: 'Oyuncak', visible: true, size: '', validFrom: '2025-01-01' },
+        { name: 'Anahtarlık Seti', stock: 42, price: '₺45', icon: '🔑', description: '3’lü silikon anahtarlık.', origin: 'Türkiye', imageUrl: '', barcode: '869123456004', category: 'Hediyelik', visible: true, size: '', validFrom: '2025-01-01' },
+        { name: 'Bache Matara', stock: 18, price: '₺240', icon: '🍶', description: 'Çelik matara 500ml.', origin: 'İtalya', imageUrl: '', barcode: '869123456005', category: 'Aksesuar', visible: true, size: '', validFrom: '2025-01-01' }
+      ];
+      const batch = db.batch();
+      defaults.forEach(p => {
+        const ref = db.collection(COLLECTION_NAME).doc();
+        batch.set(ref, p);
+      });
+      await batch.commit();
+    }
+
+    async function updateProductInFirestore(productId, data) {
+      await db.collection(COLLECTION_NAME).doc(productId).update(data);
+      const idx = products.findIndex(p => p.id === productId);
+      if (idx !== -1) Object.assign(products[idx], data);
+    }
+
+    async function addProductToFirestore(data) {
+      const ref = db.collection(COLLECTION_NAME).doc();
+      await ref.set(data);
+      const newProduct = { id: ref.id, ...data };
+      products.push(newProduct);
+      return newProduct;
+    }
+
+    async function deleteProductFromFirestore(productId) {
+      await db.collection(COLLECTION_NAME).doc(productId).delete();
+      products = products.filter(p => p.id !== productId);
+    }
+
+    // ========== UYGULAMA DURUMU ==========
+    function setAdminLogin(state) {
+      isAdminLoggedIn = state;
+      if (state) sessionStorage.setItem('kidzania_admin_logged', 'true');
+      else sessionStorage.removeItem('kidzania_admin_logged');
+      updateNavButtons();
+    }
+
+    function updateNavButtons() {
+      document.getElementById('adminPanelBtn').style.display = 'inline-flex';
+      document.getElementById('logoutBtn').style.display = isAdminLoggedIn ? 'inline-flex' : 'none';
+    }
+
+    // ========== ANA SAYFA ==========
+    function renderHomePage() {
+      const visibleProducts = products.filter(p => p.visible !== false);
+      mainContainer.innerHTML = `
+        <div class="filter-bar">
+          <input type="text" id="searchInput" placeholder="🔍 Ürün adı veya barkod ile ara...">
+          <select id="categorySelect"><option value="Tümü">📂 Tüm Kategoriler</option>${CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
+          <select id="sortSelect"><option value="default">🔢 Varsayılan</option><option value="priceAsc">💰 Fiyat: Artan</option><option value="priceDesc">💸 Fiyat: Azalan</option></select>
+          <button class="btn" id="applyFilterBtn">Uygula</button>
+        </div>
+        <div id="productsGrid" class="products-grid"></div>
+      `;
+
+      const renderProducts = () => {
+        const searchTerm = document.getElementById('searchInput').value;
+        const category = document.getElementById('categorySelect').value;
+        const sort = document.getElementById('sortSelect').value;
+        let filtered = filterProducts(visibleProducts, searchTerm, category);
+        
+        if (sort === 'priceAsc') filtered.sort((a,b) => parseFloat(a.price.replace(/[^0-9,.]/g, '').replace(',','.')) - parseFloat(b.price.replace(/[^0-9,.]/g, '').replace(',','.')));
+        else if (sort === 'priceDesc') filtered.sort((a,b) => parseFloat(b.price.replace(/[^0-9,.]/g, '').replace(',','.')) - parseFloat(a.price.replace(/[^0-9,.]/g, '').replace(',','.')));
+
+        const grid = document.getElementById('productsGrid');
+        if (filtered.length === 0) { grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; padding: 2rem;">Bu kriterlere uygun ürün bulunamadı.</p>'; return; }
+        
+        grid.innerHTML = filtered.map(p => {
+          const imgHtml = p.imageUrl ? `<img src="${escapeHtml(p.imageUrl)}" onerror="this.parentElement.innerHTML='${p.icon || '📦'}';">` : (p.icon || '📦');
+          return `
+            <div class="product-card" data-id="${p.id}">
+              <div class="product-thumb">${imgHtml}</div>
+              <div class="product-name">${escapeHtml(p.name)}</div>
+              <div class="product-price">${escapeHtml(p.price)}</div>
+              <span class="category-tag">${escapeHtml(p.category || 'Diğer')}</span>
+              ${p.size ? `<span class="category-tag" style="background:#f0e6ff;">${escapeHtml(p.size)}</span>` : ''}
+            </div>
+          `;
+        }).join('');
+
+        document.querySelectorAll('.product-card').forEach(card => card.addEventListener('click', () => {
+          const product = products.find(p => p.id === card.dataset.id);
+          if (product) { window.history.replaceState({}, document.title, window.location.pathname); showProductDetailModal(product); }
+        }));
+      };
+
+      document.getElementById('applyFilterBtn').addEventListener('click', renderProducts);
+      document.getElementById('searchInput').addEventListener('keyup', (e) => { if (e.key === 'Enter') renderProducts(); });
+      document.getElementById('categorySelect').addEventListener('change', renderProducts);
+      document.getElementById('sortSelect').addEventListener('change', renderProducts);
+      renderProducts();
+    }
+
+    // ========== ÜRÜN DETAY MODAL ==========
+    function showProductDetailModal(product) {
+      const existingModal = document.querySelector('.modal-overlay');
+      if (existingModal) existingModal.remove();
+      
+      const imgHtml = product.imageUrl ? `<img src="${escapeHtml(product.imageUrl)}" onerror="this.parentElement.innerHTML='${product.icon || '📦'}';">` : (product.icon || '📦');
+      
+      let stockHtml = '';
+      if (product.visible === false || product.stock <= 0) {
+        stockHtml = `<span class="out-of-stock">STOKTA DEĞİL</span>`;
+      } else {
+        stockHtml = `<span class="stock-badge ${product.stock <= 5 ? 'low-stock-badge' : ''}">${product.stock} Adet</span>`;
+      }
+
+      const modalHtml = `
+        <div class="modal-overlay" id="productDetailModal">
+          <div class="modal-content">
+            <div class="detail-image">${imgHtml}</div>
+            <h2 style="font-size: 1.6rem; color: var(--kidz-dark); margin-bottom: 0.3rem;">${escapeHtml(product.name)}</h2>
+            <div style="font-size:2rem; font-weight:900; color:var(--kidz-blue); margin-bottom: 1.5rem;">${escapeHtml(product.price)}</div>
+            
+            <div class="detail-info">
+              <div class="detail-row"><span>📦 <strong>Stok Durumu:</strong></span> ${stockHtml}</div>
+              ${product.size ? `<div class="detail-row"><span>📏 <strong>Beden / Numara:</strong></span> <span>${escapeHtml(product.size)}</span></div>` : ''}
+              <div class="detail-row"><span>🏷️ <strong>Barkod:</strong></span> <span>${escapeHtml(product.barcode || '—')}</span></div>
+              <div class="detail-row"><span>📂 <strong>Kategori:</strong></span> <span>${escapeHtml(product.category || 'Diğer')}</span></div>
+              <div class="detail-row"><span>🌍 <strong>Menşei:</strong></span> <span>${escapeHtml(product.origin || '—')}</span></div>
+              <div class="detail-row"><span>📅 <strong>Fiyat Geçerlilik Tarihi:</strong></span> <span>${product.validFrom ? formatDate(product.validFrom) + "'den itibaren" : '—'}</span></div>
+              <div class="detail-row" style="flex-direction: column; align-items: flex-start; padding-top: 1rem;">
+                <span style="margin-bottom: 0.5rem;">📝 <strong>Ürün Açıklaması:</strong></span> 
+                <span style="color: #555; line-height: 1.4;">${escapeHtml(product.description || 'Bu ürün için açıklama girilmemiş.')}</span>
+              </div>
+            </div>
+            
+            <button class="btn btn-blue" id="exploreStoreBtn" style="width:100%; font-size: 1.1rem; padding: 1rem; box-shadow: var(--shadow-sm);">🛍️ Mağazadaki Diğer Ürünleri Keşfet</button>
+            
+            ${isAdminLoggedIn ? `<button class="btn btn-red" id="closeDetailModal" style="margin-top:0.8rem; width:100%;">Admin: Paneli Kapat</button>` : ''}
+          </div>
+        </div>
+      `;
+      
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+      
+      document.getElementById('exploreStoreBtn').addEventListener('click', () => {
+        document.getElementById('productDetailModal').remove();
+        window.history.replaceState({}, document.title, window.location.pathname);
+        if(!isAdminLoggedIn) renderHomePage();
+      });
+
+      if(isAdminLoggedIn) {
+        document.getElementById('closeDetailModal').addEventListener('click', () => {
+          document.getElementById('productDetailModal').remove();
+          window.history.replaceState({}, document.title, window.location.pathname);
+        });
+      }
+
+      document.getElementById('productDetailModal').addEventListener('click', (e) => { 
+        if (e.target.id === 'productDetailModal') { 
+          e.target.remove(); 
+          window.history.replaceState({}, document.title, window.location.pathname); 
+          if(!isAdminLoggedIn) renderHomePage();
+        }
+      });
+    }
+
+    // ========== FİLTRE ==========
+    function filterProducts(list, searchTerm, category) {
+      let filtered = [...list];
+      if (searchTerm.trim()) {
+        const term = searchTerm.trim().toLowerCase();
+        filtered = filtered.filter(p => p.name.toLowerCase().includes(term) || (p.barcode && p.barcode.includes(term)));
+      }
+      if (category && category !== 'Tümü') filtered = filtered.filter(p => p.category === category);
+      return filtered;
+    }
+
+    // ========== ADMIN LOGIN (FIRESTORE KONTROLÜ) ==========
+    function renderAdminLogin() {
+      if (isAdminLoggedIn) { renderAdminDashboard(); return; }
+      mainContainer.innerHTML = `
+        <div class="login-box">
+          <h2 style="text-align:center; color:var(--kidz-red); margin-bottom: 1rem;">🔐 Admin Girişi</h2>
+          <div class="input-group"><label>Kullanıcı Adı</label><input type="text" id="loginUsername" placeholder="admin"></div>
+          <div class="input-group"><label>Şifre</label><input type="password" id="loginPassword" placeholder="••••••"></div>
+          <button class="btn btn-red" id="loginSubmitBtn" style="width:100%; padding: 1rem;">Giriş Yap</button>
+        </div>
+      `;
+      document.getElementById('loginSubmitBtn').addEventListener('click', async () => {
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+        
+        if (!username || !password) {
+          alert('Lütfen kullanıcı adı ve şifrenizi girin.');
+          return;
+        }
+
+        try {
+          // Firestore'dan admin bilgilerini çek
+          const configDoc = await db.collection(CONFIG_COLLECTION).doc(CONFIG_DOC).get();
+          
+          if (!configDoc.exists) {
+            alert('Sistem yapılandırması bulunamadı!\n\nLütfen Firebase Console\'da Firestore Database altında "_config" koleksiyonu oluşturup içine "admin" dokümanı ekleyin.\n\nAlanlar: username, password');
+            return;
+          }
+
+          const config = configDoc.data();
+          
+          if (config.username === username && config.password === password) {
+            setAdminLogin(true);
+            renderAdminDashboard();
+          } else {
+            alert('Hatalı kullanıcı adı veya şifre!');
+          }
+        } catch (error) {
+          console.error("Giriş hatası:", error);
+          alert('Bağlantı hatası! Lütfen tekrar deneyin.\nHata: ' + error.message);
+        }
+      });
+    }
+
+    // ========== ADMIN DASHBOARD ==========
+    function renderAdminDashboard() {
+      if (!isAdminLoggedIn) { renderAdminLogin(); return; }
+      
+      mainContainer.innerHTML = `
+        <div class="admin-dashboard">
+          <h2 style="color:var(--kidz-red);">🛠️ Admin Paneli</h2>
+          <div class="filter-bar" style="margin:1rem 0; display:flex; flex-wrap:wrap; gap:0.5rem;">
+            <input type="text" id="adminSearchInput" placeholder="🔍 Ürün adı veya barkod ara...">
+            <select id="adminCategorySelect"><option value="Tümü">Tüm Kategoriler</option>${CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
+            <button class="btn" id="adminFilterBtn">Filtrele</button>
+            <button class="btn btn-yellow" id="addProductBtn">➕ Yeni Ürün</button>
+            <button class="btn btn-outline" id="bulkQrBtn" style="background:#e8f0fe;">📱 Seçilenlerin Etiketini Yazdır</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table id="adminProductTable">
+              <thead><tr><th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox"></th><th>Ürün</th><th>Barkod</th><th>Kategori</th><th>Beden/Numara</th><th>Stok</th><th>Fiyat</th><th>Görünür</th><th>İşlem</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      const renderTable = () => {
+        const filtered = filterProducts(products, document.getElementById('adminSearchInput').value, document.getElementById('adminCategorySelect').value);
+        document.querySelector('#adminProductTable tbody').innerHTML = filtered.map(p => `
+          <tr>
+            <td><input type="checkbox" class="product-checkbox" data-id="${p.id}"></td>
+            <td>${escapeHtml(p.name)}</td>
+            <td>${escapeHtml(p.barcode || '—')}</td>
+            <td>${escapeHtml(p.category || 'Diğer')}</td>
+            <td>${escapeHtml(p.size || '—')}</td>
+            <td>${p.stock}</td>
+            <td>${escapeHtml(p.price)}</td>
+            <td><button class="visibility-btn" data-id="${p.id}">${p.visible !== false ? '👁️' : '🚫'}</button></td>
+            <td>
+              <button class="btn btn-yellow edit-product-btn" data-id="${p.id}">✏️</button>
+              <button class="btn btn-red delete-product-btn" data-id="${p.id}">🗑️</button>
+            </td>
+          </tr>
+        `).join('');
+
+        document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
+          document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = e.target.checked);
+        });
+
+        document.querySelectorAll('.visibility-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+          const id = e.currentTarget.dataset.id;
+          const product = products.find(p => p.id === id);
+          if (product) {
+            const newVal = product.visible === false ? true : false;
+            await updateProductInFirestore(id, { visible: newVal });
+            renderTable();
+          }
+        }));
+
+        document.querySelectorAll('.edit-product-btn').forEach(b => b.addEventListener('click', (e) => openProductForm(e.currentTarget.dataset.id)));
+
+        document.querySelectorAll('.delete-product-btn').forEach(b => b.addEventListener('click', async (e) => {
+          if(confirm('Bu ürünü kalıcı olarak silmek istediğinize emin misiniz?')) {
+            await deleteProductFromFirestore(e.currentTarget.dataset.id);
+            renderTable();
+          }
+        }));
+      };
+
+      document.getElementById('adminFilterBtn').addEventListener('click', renderTable);
+      document.getElementById('adminSearchInput').addEventListener('keyup', (e) => { if(e.key==='Enter') renderTable(); });
+      document.getElementById('adminCategorySelect').addEventListener('change', renderTable);
+      document.getElementById('addProductBtn').addEventListener('click', () => openProductForm());
+      document.getElementById('bulkQrBtn').addEventListener('click', () => {
+        showSelectedQrModal(Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => cb.dataset.id));
+      });
+      renderTable();
+    }
+
+    // ========== ÜRÜN EKLE / DÜZENLE FORM ==========
+    function openProductForm(productId = null) {
+      const existing = productId ? products.find(p => p.id === productId) : null;
+      mainContainer.innerHTML = `
+        <div class="login-box" style="max-width:550px;">
+          <h3 style="margin-bottom: 1.5rem;">${existing ? '✏️ Ürün Düzenle' : '➕ Yeni Ürün Ekle'}</h3>
+          <div class="input-group"><label>Ürün Adı</label><input type="text" id="prodName" value="${existing ? escapeHtml(existing.name) : ''}"></div>
+          <div class="input-group"><label>Barkod</label><input type="text" id="prodBarcode" value="${existing ? escapeHtml(existing.barcode || '') : ''}"></div>
+          <div class="input-group"><label>Kategori</label><select id="prodCategory">${CATEGORIES.map(c => `<option value="${c}" ${existing && existing.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+          <div class="input-group"><label>Beden / Numara</label><input type="text" id="prodSize" value="${existing ? escapeHtml(existing.size || '') : ''}" placeholder="Örn: M, L, 38, 42"></div>
+          <div class="input-group"><label>İkon (Yalnızca emoji)</label><input type="text" id="prodIcon" value="${existing ? existing.icon || '' : ''}" placeholder="Örn: 🧸"></div>
+          <div class="input-group"><label>Fotoğraf Linki (URL)</label><input type="text" id="prodImageUrl" value="${existing ? escapeHtml(existing.imageUrl || '') : ''}" placeholder="https://..."></div>
+          <div class="input-group"><label>Stok Adedi</label><input type="number" id="prodStock" value="${existing ? existing.stock : ''}" min="0"></div>
+          <div class="input-group"><label>Fiyat (Örn: 150)</label><input type="text" id="prodPrice" value="${existing ? escapeHtml(existing.price) : ''}" placeholder="150"></div>
+          <div class="input-group"><label>Açıklama</label><textarea id="prodDesc" rows="3">${existing ? escapeHtml(existing.description || '') : ''}</textarea></div>
+          <div class="input-group"><label>Menşei Ülke</label><input type="text" id="prodOrigin" value="${existing ? escapeHtml(existing.origin || '') : ''}"></div>
+          <div class="input-group"><label>Geçerlilik Tarihi (Fiyatın başladığı tarih)</label><input type="date" id="prodValidFrom" value="${existing ? (existing.validFrom || '') : ''}"></div>
+          <div style="display:flex; gap:1rem; margin-top: 1.5rem;">
+            <button class="btn" id="saveProductBtn" style="flex:1;">💾 Kaydet</button>
+            <button class="btn btn-outline" id="cancelFormBtn" style="flex:1;">İptal</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('cancelFormBtn').addEventListener('click', () => isAdminLoggedIn ? renderAdminDashboard() : renderHomePage());
+      document.getElementById('saveProductBtn').addEventListener('click', async () => {
+        const name = document.getElementById('prodName').value.trim();
+        const stock = parseInt(document.getElementById('prodStock').value, 10);
+        let price = document.getElementById('prodPrice').value.trim();
+        if (!name || isNaN(stock) || stock<0 || !price) { alert('Lütfen Ürün Adı, Stok ve Fiyat alanlarını eksiksiz doldurun.'); return; }
+        
+        // Otomatik ₺ ekleme
+        if (price && !price.startsWith('₺')) {
+          price = '₺' + price;
+        }
+        
+        const validFrom = document.getElementById('prodValidFrom').value;
+        
+        const data = { 
+          name, 
+          barcode: document.getElementById('prodBarcode').value.trim(), 
+          category: document.getElementById('prodCategory').value, 
+          size: document.getElementById('prodSize').value.trim(),
+          icon: document.getElementById('prodIcon').value.trim() || '📦', 
+          imageUrl: document.getElementById('prodImageUrl').value.trim(), 
+          stock, 
+          price, 
+          description: document.getElementById('prodDesc').value.trim(), 
+          origin: document.getElementById('prodOrigin').value.trim(),
+          validFrom: validFrom || '',
+          visible: true
+        };
+
+        if (existing) {
+          await updateProductInFirestore(existing.id, data);
+        } else {
+          await addProductToFirestore(data);
+        }
+        renderAdminDashboard();
+      });
+    }
+
+    // ========== QR ETİKET OLUŞTURMA ==========
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}.${parts[1]}.${parts[0]}`;
+      }
+      return dateStr;
+    }
+
+    function showSelectedQrModal(selectedIds) {
+      if (!selectedIds || selectedIds.length === 0) { alert('Lütfen yazdırmak için en az bir ürün seçin.'); return; }
+      
+      const currentUrl = window.location.origin + window.location.pathname;
+      
+      const qrItemsHtml = products.filter(p => selectedIds.includes(p.id)).map(p => {
+        const qrLink = `${currentUrl}?productId=${p.id}`;
+        const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrLink)}`;
+        
+        let numStr = String(p.price).replace(/[^0-9,.]/g, '').replace('.', ',');
+        if(numStr && !numStr.includes(',')) numStr += ',00';
+        const formattedPrice = numStr ? numStr + ' ₺' : p.price;
+
+        const sizeDisplay = p.size ? ` · ${escapeHtml(p.size)}` : '';
+        const originDisplay = p.origin ? `Menşei: ${escapeHtml(p.origin)}` : 'Menşei: —';
+        const validDisplay = p.validFrom ? `${formatDate(p.validFrom)}'den itibaren geçerlidir` : 'Geçerlilik tarihi belirtilmemiş';
+
+        return `
+          <div style="width: 75mm; height: 50mm; position: relative; background-image: url('bacground-image.png'); background-size: 100% 100%; background-position: center; background-repeat: no-repeat; box-sizing: border-box; overflow: hidden; margin: 5px; display: inline-block; text-align: left; font-family: 'Segoe UI', Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; page-break-inside: avoid; border: 1px solid #ddd;">
+            
+            <div style="position: absolute; top: 14mm; left: 5mm; z-index: 2; font-weight: 700; font-size: 13px; color: #000; width: 65mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${escapeHtml(p.name)}${sizeDisplay}
+            </div>
+            
+            <div style="position: absolute; top: 18mm; left: 5mm; z-index: 2; font-size: 8px; color: #555; width: 60mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${originDisplay}
+            </div>
+            
+            <img src="${qrImageUrl}" style="position: absolute; bottom: 4mm; left: 5mm; width: 23mm; height: 23mm; z-index: 2;">
+            
+            <div style="position: absolute; bottom: 6mm; right: 5mm; z-index: 2; text-align: right;">
+              <div style="color: #9e002d; font-size: 26px; font-weight: 900; line-height: 1; letter-spacing: -0.5px;">${escapeHtml(formattedPrice)}</div>
+              <div style="color: #777; font-size: 8px; margin-top: 4px; font-weight: 700; letter-spacing: 0.5px;">KDV DAHİLDİR</div>
+              <div style="color: #777; font-size: 7px; margin-top: 2px;">${validDisplay}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width: 900px; width: 95%;">
+          <h3 style="margin-bottom: 0.5rem; color: var(--kidz-blue);">Mağaza Etiketleri Hazır</h3>
+          <p style="margin-bottom: 1.5rem; color: #555; font-size: 0.9rem;">Yazdırılan bu kodlar telefonla okutulduğunda müşteriyi doğrudan ürün sayfasına yönlendirecektir.</p>
+          <div style="max-height: 50vh; overflow-y: auto; background: #f4f7fc; padding: 15px; border-radius: 12px; margin-bottom: 1rem; text-align: center;">
+            ${qrItemsHtml}
+          </div>
+          <div style="display: flex; gap: 1rem; justify-content: center;">
+            <button class="btn btn-red" id="printBulkQr">🖨️ Etiketleri Yazdır</button>
+            <button class="btn btn-outline" id="closeBulkQr">Kapat</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      document.getElementById('closeBulkQr').onclick = () => modal.remove();
+      document.getElementById('printBulkQr').onclick = () => {
+        const win = window.open('','_blank','width=1000,height=800');
+        win.document.write(`
+          <html>
+            <head>
+              <style>
+                @page { margin: 5mm; size: auto; }
+                body { margin: 0; padding: 0; background: #fff; }
+                .print-container { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3mm; padding: 5mm; }
+                * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+              </style>
+            </head>
+            <body>
+              <div class="print-container">${qrItemsHtml}</div>
+            </body>
+          </html>
+        `);
+        win.document.close(); win.focus();
+        setTimeout(() => { win.print(); win.close(); }, 500);
+      };
+    }
+
+    // ========== UYGULAMA BAŞLANGICI ==========
+    const mainContainer = document.getElementById('mainContainer');
+
+    async function initApp() {
+      mainContainer.innerHTML = `<div id="loadingIndicator">🔄 Yükleniyor...</div>`;
+      await loadProductsFromFirestore();
+      updateNavButtons();
+      renderHomePage();
+
+      const scannedProductId = new URLSearchParams(window.location.search).get('productId');
+      if (scannedProductId) {
+        const foundProduct = products.find(p => p.id === scannedProductId);
+        if (foundProduct) {
+          showProductDetailModal(foundProduct);
+        } else {
+          alert('Bu ürün mağazada bulunmuyor. Lütfen QR kodun doğru olduğundan emin olun.');
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    }
+
+    document.getElementById('goHomeBtn').addEventListener('click', () => { 
+      window.history.replaceState({}, document.title, window.location.pathname); 
+      renderHomePage();
+      updateNavButtons();
+    });
+    
+    document.getElementById('adminPanelBtn').addEventListener('click', renderAdminLogin);
+    
+    document.getElementById('logoutBtn').addEventListener('click', () => { 
+      setAdminLogin(false); 
+      renderHomePage(); 
+    });
+
+    initApp();
+  </script>
+</body>
+</html>
